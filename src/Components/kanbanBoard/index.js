@@ -10,25 +10,12 @@ import {
 function CanBanBoard() {
   const dispatch = useDispatch();
   const columnsFromRedux = useSelector((state) => state.task.tasks);
-  console.log("columnsFromRedux", columnsFromRedux);
-  
+  const projects = useSelector((state) => state.task.projects);
+
   const [columns, setColumns] = useState({});
-  console.log("columns", columns);
-  
-  // If you update Redux state directly during drag-and-drop, React re-renders asynchronously and
-  // the array gets appended at the end, so the moved task appears last instead of its intended index.
-
-  // useEffect(() => {
-  //   if (columnsFromRedux && Object.keys(columns).length === 0) {
-  //     setColumns(columnsFromRedux);
-  //   }
-  // }, [columnsFromRedux, columns]);
-
-  // useEffect(() => {
-  //   if (columnsFromRedux) {
-  //     setColumns(columnsFromRedux);
-  //   }
-  // }, [columnsFromRedux]);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [cardData, setCardData] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   const statusKeyMap = {
     requested: "Requested",
@@ -38,59 +25,41 @@ function CanBanBoard() {
   };
 
   useEffect(() => {
-    if (!columnsFromRedux) {
-      return;
-    }
-
-    setColumns((prevColumns) => {
-      // console.log("Columns", columnsFromRedux);
-
-      const mergedColumns = { ...prevColumns };
-      // console.log("mergedColumns", mergedColumns);
-      
-      for (const key in columnsFromRedux) {
-        const prevItems = prevColumns[key]?.items?.length;
-        // console.log("prevItemsCanban", prevItems);
-        
-        const reduxItems = columnsFromRedux[key].items?.length;
-        // console.log("reduxItemsCanban", reduxItems);
-        
-        if (!prevItems && reduxItems) {
-          mergedColumns[key] = {
-            ...prevColumns[key],
-            items: columnsFromRedux[key].items,
-          };
-          // console.log("Merged column ",key);
-        }
-      }
-      if (Object.keys(prevColumns).length === 0) {
-        return columnsFromRedux;
-      }
-      return mergedColumns;
-    });
-  }, [columnsFromRedux]);
-
-  const [cardData, setCardData] = useState(null);
-  console.log("cardData", cardData);
-
-  const [showSidebar, setShowSidebar] = useState(false);
-  // console.log('showSidebar',showSidebar);
-
-  // Open sidebar with task details
-  const handleSidebar = (item) => {
-    setShowSidebar(true);
-    setCardData(item);
-  };
-
-  useEffect(() => {
     dispatch(getCanbanTasks());
   }, [dispatch]);
 
+  // SYNC REDUX → LOCAL STATE
+  useEffect(() => {
+    if (!columnsFromRedux) return;
+
+    setColumns((prev) => {
+      if (Object.keys(prev).length === 0) {
+        return columnsFromRedux;
+      }
+
+      const merged = { ...prev };
+      Object.keys(columnsFromRedux).forEach((key) => {
+        if (!merged[key]?.items?.length) {
+          merged[key] = columnsFromRedux[key];
+        }
+      });
+
+      return merged;
+    });
+  }, [columnsFromRedux]);
+
+  // SIDEBAR HANDLER
+  const handleSidebar = (item) => {
+    setCardData(item);
+    setShowSidebar(true);
+  };
+
+  // DRAG END HANDLER
   const onDragEnd = (result) => {
     if (!result.destination) return;
+
     const { source, destination } = result;
-    console.log("source", source);
-    console.log("destination", destination);
+
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
@@ -124,11 +93,11 @@ function CanBanBoard() {
 
     destItems.splice(destination.index, 0, updatedTask);
 
-   setColumns({
-     ...columns,
-     [source.droppableId]: { ...sourceColumn, items: sourceItems },
-     [destination.droppableId]: { ...destColumn, items: destItems },
-   });
+    setColumns({
+      ...columns,
+      [source.droppableId]: { ...sourceColumn, items: sourceItems },
+      [destination.droppableId]: { ...destColumn, items: destItems },
+    });
 
 
     dispatch(
@@ -139,30 +108,45 @@ function CanBanBoard() {
     );
   };
 
+  // FILTER TASKS BY PROJECT
+  const filterByProject = (items) => {
+    if (!selectedProjectId) return items;
+    return items.filter((task) => task.project?.id === selectedProjectId);
+  };
+
   return (
     <div className="antialiased w-full relative">
+      {/* PROJECT SELECT */}
+      <div className="px-4 py-2">
+        <select
+          className="border px-3 py-2 rounded"
+          value={selectedProjectId}
+          onChange={(e) => setSelectedProjectId(e.target.value)}
+        >
+          <option value="">All Projects</option>
+          {projects?.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* KANBAN BOARD */}
       <div
-        className="py-4 gap-2 px-2"
-        style={{ display: "flex", justifyContent: "center", height: "100%" }}
+        className="py-4 gap-2 px-2 flex justify-center h-full"
       >
         <DragDropContext onDragEnd={onDragEnd}>
-          {Object.entries(columns).map(([columnId, column]) => (
-            <div
-              key={columnId}
-              className="w-1/4"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <div className="flex items-center">
-                <h1 className="font-medium font-black group-hover:text-indigo-400 leading-4">
-                  {statusKeyMap[columnId]}
-                </h1>
-              </div>
+          {Object.entries(columns).map(([columnId, column]) => {
+            const filteredItems = filterByProject(column.items || []);
 
-              <div className="w-full" style={{ margin: 8 }}>
+            return (
+              <div
+                key={columnId}
+                className="w-1/4 flex flex-col items-center"
+              >
+                <h1 className="font-bold mb-2">{statusKeyMap[columnId]}</h1>
+
                 <Droppable droppableId={columnId}>
                   {(provided) => (
                     <div
@@ -170,55 +154,41 @@ function CanBanBoard() {
                       ref={provided.innerRef}
                       className="rounded-lg bg-white/10 p-4 w-full"
                     >
-                      {column.items &&
-                        column.items.map((item, index) => (
-                          <Draggable
-                            key={item.id}
-                            draggableId={item.id}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                onClick={() => handleSidebar(item)}
-                                className="w-full mb-3"
-                                style={{ ...provided.draggableProps.style }}
-                                data-drawer-target="drawer-navigation"
-                                data-drawer-show="drawer-navigation"
-                                aria-controls="drawer-navigation"
-                              >
-                                <div className="group p-4 transition-all duration-300 bg-white shadow-lg lg:p-5">
-                                  <div className="flex items-center gap-x-2">
-                                    <div className="flex items-start">
-                                      <div>
-                                        <div className="flex items-center justify-between">
-                                          <h2 className="text-lg font-semibold text-gray-900 mt-1 mb-2">
-                                            {item.title}
-                                          </h2>
-                                        </div>
-                                        <p className="text-sm font-semibold text-gray-500 mt-1 mb-2">
-                                          {item.description}
-                                        </p>
-                                        <p className="text-sm font-semibold text-gray-900 mt-1 mb-2">
-                                          Status : {item.status}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
+                      {filteredItems.map((item, index) => (
+                        <Draggable
+                          key={item.id}
+                          draggableId={item.id}
+                          index={index}
+                        >
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => handleSidebar(item)}
+                              className="mb-3 cursor-pointer"
+                              style={provided.draggableProps.style}
+                            >
+                              <div className="p-4 bg-white shadow rounded">
+                                <h2 className="font-semibold">{item.title}</h2>
+                                <p className="text-sm text-gray-600">
+                                  {item.description}
+                                </p>
+                                <p className="text-xs mt-1">
+                                  Project: {item.project?.name}
+                                </p>
                               </div>
-                            )}
-                          </Draggable>
-                        ))}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
                       {provided.placeholder}
                     </div>
                   )}
                 </Droppable>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </DragDropContext>
       </div>
 
