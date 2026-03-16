@@ -117,7 +117,40 @@ const DynamicForm = () => {
     </div>
   );
 };
+const cron = require("node-cron");
+const axios = require("axios");
+const Shipment = require("../model/ShipmentAllDetailsModel");
 
+const API_URL = "http://localhost:5000/customer/shipment/tracking";
+
+// run every 5 minutes
+cron.schedule("*/5 * * * *", async () => {
+  console.log("Running shipment tracking cron job...");
+
+  try {
+    const shipments = await Shipment.find();
+
+    for (const shipment of shipments) {
+
+      // call tracking API
+      const res = await axios.post(API_URL, {
+        shipment_id: shipment._id
+      });
+
+      const history = res.data.shipment?.trackingHistory || [];
+
+      // update DB
+      await Shipment.findByIdAndUpdate(shipment._id, {
+        trackingHistory: history
+      });
+
+      console.log("Updated:", shipment._id);
+    }
+
+  } catch (error) {
+    console.log("Cron Error:", error.message);
+  }
+});
 export default DynamicForm;
 */
 // If you want to start measuring performance in your app, pass a function
