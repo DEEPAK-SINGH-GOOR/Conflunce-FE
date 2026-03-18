@@ -41,116 +41,89 @@ root.render(
     </BrowserRouter>
 );
 /*
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 const DynamicForm = () => {
-  const [forms, setForms] = useState([
-    { firstName: "", lastName: "", email: "", phone: "" },
-  ]);
+    const [forms, setForms] = useState([
+        { firstName: "", lastName: "", email: "", phone: "" }
+    ]);
+    const [submit, setSubmit] = useState([])
 
-  // Load forms from localStorage on component mount
-  useEffect(() => {
-    const savedForms = localStorage.getItem("formsData");
-    if (savedForms) {
-      setForms(JSON.parse(savedForms));
+    const handleAddForm = () => {
+        setForms([...forms, { firstName: "", lastName: "", email: "", phone: "" }]);
+    };
+
+    const handleDelete = (index) => {
+        setForms(forms.filter((_, i) => i !== index));
+    };
+
+    const handleChange = (index, e) => {
+        const newForms = [...forms];
+        newForms[index][e.target.name] = e.target.value;
+        setForms(newForms); // live update as you type
+    };
+    const handleSubmit = () => {
+        setSubmit(forms)
     }
-  }, []);
 
-  // Save forms to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("formsData", JSON.stringify(forms));
-  }, [forms]);
+    return (
+        <div style={{ padding: "20px" }}>
+            <h2>Dynamic Forms</h2>
+            <button onClick={handleAddForm}>+ Add</button>
 
-  // Add a new empty form
-  const handleAddForm = () => {
-    setForms([...forms, { firstName: "", lastName: "", email: "", phone: "" }]);
-  };
-
-  // Update form values
-  const handleChange = (index, e) => {
-    const newForms = [...forms];
-    newForms[index][e.target.name] = e.target.value;
-    setForms(newForms);
-  };
-
-  // Delete a form
-  const handleDelete = (index) => {
-    const newForms = forms.filter((_, i) => i !== index);
-    setForms(newForms);
-  };
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>Dynamic Forms</h2>
-
-      <button onClick={handleAddForm}>+ Add Form</button>
-
-      {forms.map((form, index) => (
-        <div key={index} style={{ border: "1px solid #ccc", padding: "10px", margin: "10px 0" }}>
-          <input
-            name="firstName"
-            placeholder="First Name"
-            value={form.firstName}
-            onChange={(e) => handleChange(index, e)}
-          />
-          <input
-            name="lastName"
-            placeholder="Last Name"
-            value={form.lastName}
-            onChange={(e) => handleChange(index, e)}
-          />
-          <input
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => handleChange(index, e)}
-          />
-          <input
-            name="phone"
-            placeholder="Phone"
-            value={form.phone}
-            onChange={(e) => handleChange(index, e)}
-          />
-          <button onClick={() => handleDelete(index)}>Delete</button>
+            {forms.map((form, index) => (
+                <div key={index} style={{ border: "1px solid #ccc", padding: "10px", margin: "10px 0" }}>
+                    <input
+                        type="text"
+                        name="firstName"
+                        placeholder="First Name"
+                        value={form.firstName}
+                        onChange={(e) => handleChange(index, e)}
+                    />
+                    <input
+                        type="text"
+                        name="lastName"
+                        placeholder="Last Name"
+                        value={form.lastName}
+                        onChange={(e) => handleChange(index, e)}
+                    />
+                    <input
+                        type="text"
+                        name="email"
+                        placeholder="Email"
+                        value={form.email}
+                        onChange={(e) => handleChange(index, e)}
+                    />
+                    <input
+                        type="text"
+                        name="phone"
+                        placeholder="Phone"
+                        value={form.phone}
+                        onChange={(e) => handleChange(index, e)}
+                    />
+                    <button onClick={() => handleDelete(index)} style={{ marginTop: "5px" }}>Delete</button>
+                </div>
+            ))}
+            <button onClick={handleSubmit} style={{ marginTop: "10px" }}>
+                Submit All
+            </button>
+            {submit.map((form, index) => (
+                <div key={index} style={{
+                    border: "1px solid green",
+                    padding: "10px",
+                    margin: "5px 0",
+                    backgroundColor: "#f0fff0"
+                }}>
+                    <p>First Name: {form.firstName}</p>
+                    <p>Last Name: {form.lastName}</p>
+                    <p>Email: {form.email}</p>
+                    <p>Phone: {form.phone}</p>
+                </div>
+            ))}
         </div>
-      ))}
-    </div>
-  );
+    );
 };
-const cron = require("node-cron");
-const axios = require("axios");
-const Shipment = require("../model/ShipmentAllDetailsModel");
 
-const API_URL = "http://localhost:5000/customer/shipment/tracking";
-
-// run every 5 minutes
-cron.schedule("*/5 * * * *", async () => {
-  console.log("Running shipment tracking cron job...");
-
-  try {
-    const shipments = await Shipment.find();
-
-    for (const shipment of shipments) {
-
-      // call tracking API
-      const res = await axios.post(API_URL, {
-        shipment_id: shipment._id
-      });
-
-      const history = res.data.shipment?.trackingHistory || [];
-
-      // update DB
-      await Shipment.findByIdAndUpdate(shipment._id, {
-        trackingHistory: history
-      });
-
-      console.log("Updated:", shipment._id);
-    }
-
-  } catch (error) {
-    console.log("Cron Error:", error.message);
-  }
-});
 export default DynamicForm;
 */
 // If you want to start measuring performance in your app, pass a function
