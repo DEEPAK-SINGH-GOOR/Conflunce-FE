@@ -211,6 +211,9 @@ const DynamicForm = () => {
           <p>{item.height}</p>
           <p>Fright Class:{calculateFreightClass(item)}</p>
           <p>liner Ft:{calculateLinearFeet(item)}</p>
+          //   {Object.keys(item).map((field) => (
+          //   <p key={field}><strong>{field}:</strong> {item[field]}</p>
+          // ))}
         </div>
         )
       })}
